@@ -1,0 +1,7 @@
+flowchart TD
+  P("plugin.xml 注册") --> A("项目启动活动 MyProjectActivity")
+  P --> T("工具窗口 MyToolWindowFactory")
+  T --> S("项目级 MyProjectService")
+  T --> B("资源文本 MyBundle")
+  S --> R("模板示例：随机数字")
+  B --> R

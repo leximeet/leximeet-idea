@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "diagrams": [
+    {
+      "id": "figure-b335630551-01",
+      "page": "README.md",
+      "source": "docs/diagrams/figure-b335630551-01.mmd",
+      "sourceSha256": "492bbc6bff13c8835be4133d8c93d96094a22297bcd7209f10c78c385a36ed17",
+      "origin": "README.md",
+      "originDiagram": 1,
+      "originDiagramSha256": "6050e421fbfb2461646e45135d67eca94485e6f3094b45253bab4ba50aec15be"
+    },
+    {
+      "id": "figure-3c8909d50f-01",
+      "page": "docs/图表规范.md",
+      "source": "docs/diagrams/figure-3c8909d50f-01.mmd",
+      "sourceSha256": "9a2e9caf7e400de241dc4637f664cf34609c3ff555f0a97b266303068bd06f34",
+      "origin": "docs/图表规范.md",
+      "originDiagram": 1,
+      "originDiagramSha256": "5395bb36732cf0294844d1e042ee348177d49d3ee5dce009318f71aa5a882a6b"
+    },
+    {
+      "id": "figure-ae81df49ce-01",
+      "page": "docs/架构与接入准备.md",
+      "source": "docs/diagrams/figure-ae81df49ce-01.mmd",
+      "sourceSha256": "c8870d846722aa0e286f384e86932d567f7aca56e9556c19729c5169dc143538",
+      "origin": "docs/架构与接入准备.md",
+      "originDiagram": 1,
+      "originDiagramSha256": "268897cb1042cee0db0c1a6483c2d930e891344fed2fcf2e51147c41427f732b"
+    },
+    {
+      "id": "figure-ae81df49ce-02",
+      "page": "docs/架构与接入准备.md",
+      "source": "docs/diagrams/figure-ae81df49ce-02.mmd",
+      "sourceSha256": "94346cdd9b38532bbbec7667b0176fcb1b08cfd45dd8c9bebca27e889f3c6a22",
+      "origin": "docs/架构与接入准备.md",
+      "originDiagram": 2,
+      "originDiagramSha256": "0745c504bd36271f980d6bcbb6b548cda35d3563a4cb25d5345e743acbf5e8bf"
+    }
+  ]
+}

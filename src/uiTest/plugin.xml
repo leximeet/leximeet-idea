@@ -1,0 +1,14 @@
+<idea-plugin>
+    <id>com.github.weilhuang.leximeetidea.uitest</id>
+    <name>词遇 IDEA 沙箱 UI 测试</name>
+    <version>1</version>
+    <vendor>LexiMeet</vendor>
+    <depends>com.intellij.modules.platform</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="com.github.weilhuang.leximeetidea.uitest.ReadingUiActivity"/>
+    </extensions>
+    <applicationListeners>
+        <listener class="com.github.weilhuang.leximeetidea.uitest.ReadingUiBackgroundListener"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+</idea-plugin>

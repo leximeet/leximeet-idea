@@ -4,3 +4,19 @@
 .intellijPlatform
 .kotlin
 build
+__pycache__/
+
+# 发布凭据应始终保存在仓库外；忽略常见文件名再兜一层。
+*.pem
+*.key
+*.crt
+*.cer
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+.env
+.env.*
+.envrc
+.secrets/

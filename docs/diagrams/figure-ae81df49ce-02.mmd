@@ -1,0 +1,6 @@
+flowchart LR
+  E("编辑器：只读词范围与选区") -. "计划实现" .-> U("词卡与侧边栏 UI")
+  U -.-> P("ReadingPort / CapturePort")
+  P -. "独立核心，需单独实现" .-> L("IDEA 本地工作区")
+  P -. "连接适配器，需单独实现" .-> D("Desktop LMCP API")
+  D --> C("Desktop 唯一活动业务核心")
