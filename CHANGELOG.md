@@ -17,6 +17,7 @@
 - 版本标签触发完整验收，验收通过后签名、验证 ZIP 内容并生成 GitHub Release 草稿；Marketplace 首发由维护者在网页提交。
 - 提供浅色与深色 Marketplace 矢量标志；发布校验会拦截嵌入位图的图标。
 - CI 通过 Xvfb 运行 IDEA Community 的真实 Swing 界面及 Desktop/Core 联调，保留隔离日志和超时线程诊断。
+- CI 的新建测试资料使用 JetBrains 官方 UI 示例的协议测试配置，支持无人值守启动。
 
 ### 许可
 

@@ -1,5 +1,5 @@
-修复：用独立虚拟显示运行 IDEA 云端联调
+修复：让 IDEA 原生界面在干净 CI 资料中启动
 
-- 在 Ubuntu 的 Xvfb 中验证 IDEA Community 原生界面，复用安装或校验官方发行包。
-- 固定 Desktop 1.1.0 发行提交与 Core gitlink，保留真实反编译和连接用例。
-- 为隔离测试进程保留超时线程诊断，更新开发指南与变更记录。
+- 使用 JetBrains 官方 UI 示例的协议测试配置处理无人值守的首次启动。
+- 仅在 GitHub Actions 的隔离测试进程传入该配置，保留原生 Swing 与 Desktop 联调。
+- 同步开发指南和变更记录。

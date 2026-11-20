@@ -174,6 +174,8 @@ function startIdea(root, profile) {
     "-Didea.is.integration.test=true",
     "-Dide.show.tips.on.startup.default.value=false",
     "-Djb.consents.confirmation.enabled=false",
+    // JetBrains UI 测试示例为无历史资料的 runner 使用专用协议文本。此处仅作用于隔离进程。
+    ...(env.GITHUB_ACTIONS === "true" ? ["-Djb.privacy.policy.text=<!--999.999-->"] : []),
     "-Dide.mac.disableNativeMenus=true",
     "-Dapple.awt.UIElement=true",
     // 启动画面早于测试插件加载，须从进程入口就禁用。
