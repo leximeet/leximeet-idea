@@ -10,18 +10,18 @@
             <li>Search, filter, and sort matches. Select a word to open its card and jump to an occurrence.</li>
             <li>Look up definitions, pronunciation, and learning notes. Persistent highlighting is optional and off by default.</li>
         </ul>
-        <p>Requires LexiMeet Desktop with IDEA integration. The read-only connection uses a local Unix domain socket on macOS and Linux.</p>
+        <p>Requires LexiMeet Desktop 1.1.0 or later. The read-only connection uses a local Unix domain socket on macOS and Linux.</p>
         <p>在读代码时遇见单词。连接词遇桌面端后，IDEA 底部词遇工具窗自动刷新匹配。</p>
         <ul>
             <li>在项目树、已打开的代码、JAR 文本和反编译文档中标记词库词汇。</li>
             <li>按单词、出处、学习状态或标签筛选，点击列名排序，单击单词定位并打开右侧词卡。</li>
             <li>悬浮查看桌面词库中的释义、音标、学习状态和个人笔记。</li>
         </ul>
-        <p>阅读功能需要配套的词遇桌面端。当前通过 macOS 和 Linux 的本机只读连接读取词库。</p>
+        <p>阅读功能需要词遇 Desktop 1.1.0 或更高版本。当前通过 macOS 和 Linux 的本机只读连接读取词库。</p>
     ]]></description>
     <!-- 商店更新说明随插件描述文件打包；仓库另行维护中文 CHANGELOG.md。 -->
     <change-notes><![CDATA[
-        <p>Initial release: Desktop discovery and pairing, a searchable word list and word cards, navigation to matches, and optional persistent highlighting.</p>
+        <p>Clarified the required Desktop version and supported platforms. Plugin features are unchanged.</p>
     ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>

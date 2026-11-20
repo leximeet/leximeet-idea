@@ -107,7 +107,9 @@ jobs:
               --notes "运行需要带 IDEA 连接能力的词遇 Desktop。安装前可使用同名 SHA-256 文件校验 ZIP。"
           fi
   marketplace:
-    if: github.ref_name != 'v0.0.1' && vars.LEXIMEET_PUBLISH_MARKETPLACE == 'true'
+    if: >-
+      github.ref_name != 'v0.0.1' &&
+      (vars.LEXIMEET_PUBLISH_MARKETPLACE == 'true' || vars.LEXIMEET_MARKETPLACE_TAG == github.ref_name)
     needs: [tag, draft]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
