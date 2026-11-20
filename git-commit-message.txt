@@ -1,5 +1,4 @@
-修复：允许从通过完整验收的同一提交恢复 IDEA 发布
+修复：固定 IDEA CI 的 Marketplace ZIP 签名工具
 
-- 核对原注解标签、版本以及成功 main 运行的仓库、提交和工作流。
-- 复用该次原生 UI 和 Desktop 联调生成的候选 ZIP，保留签名、草稿和上传回执校验。
-- 补充托管环境故障后的恢复命令和变更记录。
+- 从 Maven Central 下载与本地 Gradle 配置一致的 JetBrains 签名器并校验 SHA-256。
+- 只在工具通过校验后读取签名 Secrets，持续验证候选 ZIP 与签名产物的一致性。
