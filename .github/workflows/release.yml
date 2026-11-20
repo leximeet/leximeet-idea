@@ -2,34 +2,74 @@ name: IDEA 标签发布
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '已推送的注解版本标签，例如 v0.0.2'
+        type: string
+        required: true
+      tested_run_id:
+        description: '同一源码提交通过 IDEA 开发检查的 main push run ID'
+        type: string
+        required: true
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: publish-idea-${{ github.ref }}
+  group: publish-idea-refs/tags/${{ inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
   tag:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      source_sha: ${{ steps.version.outputs.source_sha }}
+      tested_run_id: ${{ steps.version.outputs.tested_run_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: 核对标签与 main 提交
         id: version
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          TESTED_RUN_ID: ${{ inputs.tested_run_id }}
         run: |
+          set -euo pipefail
           version="$(python3 scripts/check-release-archive.py --tag "$RELEASE_TAG" --version-only)"
+          source_sha="$(git rev-parse HEAD)"
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$source_sha"
           git merge-base --is-ancestor HEAD refs/remotes/origin/main
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            test "$GITHUB_REF" = refs/heads/main
+            [[ "$TESTED_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            # 仅能复用本仓 main 推送、同一提交、完整通过开发检查的产物。
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$TESTED_RUN_ID" |
+              jq -e --arg repository "$GITHUB_REPOSITORY" --arg commit "$source_sha" '
+                .repository.full_name == $repository and
+                .head_repository.full_name == $repository and
+                .head_sha == $commit and .head_branch == "main" and .event == "push" and
+                .path == ".github/workflows/build.yml" and
+                .status == "completed" and .conclusion == "success"
+              ' > /dev/null
+          fi
+          printf 'version=%s\nrelease_tag=%s\nsource_sha=%s\ntested_run_id=%s\n' \
+            "$version" "$RELEASE_TAG" "$source_sha" "$TESTED_RUN_ID" >> "$GITHUB_OUTPUT"
   verify:
     needs: tag
+    if: github.event_name == 'push'
     uses: ./.github/workflows/build.yml
   sign:
     needs: [tag, verify]
+    if: >-
+      !cancelled() && needs.tag.result == 'success' &&
+      (needs.verify.result == 'success' ||
+      (needs.verify.result == 'skipped' && needs.tag.outputs.tested_run_id != ''))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -37,6 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ needs.tag.outputs.source_sha }}
           persist-credentials: false
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
@@ -45,6 +86,8 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: idea-release-candidate
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.tag.outputs.tested_run_id || github.run_id }}
           path: ${{ runner.temp }}/candidate
       - name: 准备签名工具
         run: |
@@ -78,7 +121,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.tag.outputs.release_tag }}
           VERSION: ${{ needs.tag.outputs.version }}
         run: |
           cd "$RUNNER_TEMP/signed"
@@ -108,8 +151,8 @@ jobs:
           fi
   marketplace:
     if: >-
-      github.ref_name != 'v0.0.1' &&
-      (vars.LEXIMEET_PUBLISH_MARKETPLACE == 'true' || vars.LEXIMEET_MARKETPLACE_TAG == github.ref_name)
+      needs.tag.outputs.release_tag != 'v0.0.1' &&
+      (vars.LEXIMEET_PUBLISH_MARKETPLACE == 'true' || vars.LEXIMEET_MARKETPLACE_TAG == needs.tag.outputs.release_tag)
     needs: [tag, draft]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -117,6 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ needs.tag.outputs.source_sha }}
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -125,5 +169,5 @@ jobs:
       - name: 上传已签名的 Stable 产物
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.tag.outputs.release_tag }}
         run: bash scripts/upload-marketplace.sh "$RELEASE_TAG" "$RUNNER_TEMP/signed"
