@@ -125,6 +125,8 @@ jobs:
           retention-days: 14
   draft:
     needs: [tag, sign]
+    # 恢复时 verify 由前置检查提供证据，状态为 skipped。草稿只依赖本次标签核对和签名结果。
+    if: "!cancelled() && needs.tag.result == 'success' && needs.sign.result == 'success'"
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -167,6 +169,7 @@ jobs:
           fi
   marketplace:
     if: >-
+      !cancelled() && needs.tag.result == 'success' && needs.draft.result == 'success' &&
       needs.tag.outputs.release_tag != 'v0.0.1' &&
       (vars.LEXIMEET_PUBLISH_MARKETPLACE == 'true' || vars.LEXIMEET_MARKETPLACE_TAG == needs.tag.outputs.release_tag)
     needs: [tag, draft]
