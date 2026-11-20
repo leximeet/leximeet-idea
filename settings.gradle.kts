@@ -2,7 +2,16 @@ import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 
 rootProject.name = "leximeet-idea"
 
-pluginManagement { plugins { id("org.jetbrains.kotlin.jvm") version "2.3.20" } }
+pluginManagement {
+    plugins { id("org.jetbrains.kotlin.jvm") version "2.3.20" }
+    repositories {
+        // 托管机共享出口易被 Maven Central 限流。镜像提供插件依赖，插件标记仍可从 Portal 获取。
+        if (System.getenv("GITHUB_ACTIONS") == "true") {
+            maven("https://maven-central.storage-download.googleapis.com/maven2")
+        }
+        gradlePluginPortal()
+    }
+}
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
@@ -11,8 +20,10 @@ plugins {
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
-    // Configure all projects' repositories
     repositories {
+        if (System.getenv("GITHUB_ACTIONS") == "true") {
+            maven("https://maven-central.storage-download.googleapis.com/maven2")
+        }
         mavenCentral()
 
         // IntelliJ Platform Gradle Plugin Repositories Extension - read more:

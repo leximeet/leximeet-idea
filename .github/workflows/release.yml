@@ -91,15 +91,24 @@ jobs:
           path: ${{ runner.temp }}/candidate
       - name: 准备签名工具
         run: |
+          set -euo pipefail
           install -d -m 700 "$RUNNER_TEMP/signed"
           # 和 Gradle 的 zipSigner 版本一致。签名 runner 只需要这个工具。
           signer="build/leximeet/release-tools/marketplace-zip-signer-cli.jar"
+          artifact="org/jetbrains/marketplace-zip-signer/0.1.43/marketplace-zip-signer-0.1.43-cli.jar"
           install -d "${signer%/*}"
-          curl --fail --silent --show-error --proto '=https' --retry 3 --max-time 60 \
-            --output "$signer" \
-            https://repo.maven.apache.org/maven2/org/jetbrains/marketplace-zip-signer/0.1.43/marketplace-zip-signer-0.1.43-cli.jar
-          printf '2958a0f42221d6062b50f22754e413ae5cc42f60c441467202c6700df2e22f44  %s\n' "$signer" |
-            sha256sum --check
+          verified=0
+          for repository in https://repo.maven.apache.org/maven2 https://repo1.maven.org/maven2 \
+            https://maven-central.storage-download.googleapis.com/maven2; do
+            if curl --fail --silent --show-error --proto '=https' --retry 1 --max-time 45 \
+              --output "$signer" "$repository/$artifact"; then
+              printf '2958a0f42221d6062b50f22754e413ae5cc42f60c441467202c6700df2e22f44  %s\n' "$signer" |
+                sha256sum --check
+              verified=1
+              break
+            fi
+          done
+          test "$verified" = 1
       - name: 签名并校验通过测试的 ZIP
         env:
           LEXIMEET_SIGNING_CERTIFICATE: ${{ secrets.LEXIMEET_SIGNING_CERTIFICATE }}

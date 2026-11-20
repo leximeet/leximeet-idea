@@ -8,6 +8,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.SystemInfo
@@ -742,8 +743,12 @@ private class ReadingUi(
 
     /** 设置对话框是模态窗口，由测试进程内部事件打开、保存和绘制。 */
     private fun saveHighlightSetting(expected: Boolean, value: Boolean, snapshot: String? = null) {
+        // 设置页会加载 IDE 的其他配置项，等项目首次索引完成后再打开模态窗口。
+        await("项目索引就绪", Duration.ofSeconds(60)) {
+            true.takeUnless { DumbService.getInstance(project).isDumb }
+        }
         await("设置齿轮可用") { edt { button("leximeet-settings").takeIf { it.isEnabled } } }
-        ApplicationManager.getApplication().invokeLater { button("leximeet-settings").doClick() }
+        ApplicationManager.getApplication().invokeLater { button("leximeet-settings").doClick(0) }
         val setting =
             await("IDEA 原生词遇设置") {
                 edt(ModalityState.any()) { component("leximeet-setting-highlight") as? JCheckBox }
