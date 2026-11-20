@@ -294,6 +294,31 @@ async function verifyDesktopBackground(app, root) {
   );
 }
 
+async function captureDesktop({ app, page }, root, filename) {
+  if (process.platform === "darwin") {
+    await page.screenshot({
+      path: path.join(root, filename),
+      animations: "disabled",
+      scale: "css",
+    });
+    return;
+  }
+  // Linux 的隐藏 X11 窗口不保证为 Playwright 提交下一帧，优先由 Electron 捕获。
+  const window = await app.browserWindow(page);
+  const capture = window.evaluate(async (win) => {
+    const image = await win.webContents.capturePage(undefined, { stayHidden: true });
+    return image.isEmpty() ? null : image.toPNG().toString("base64");
+  });
+  const png = await Promise.race([capture, delay(8000, null, { ref: false })]);
+  if (png) {
+    put(root, filename, Buffer.from(png, "base64"));
+  } else if (desktopOnly) {
+    throw new Error("Linux 隐藏窗口未生成对照图：" + filename);
+  } else {
+    console.warn("Linux 隐藏窗口未生成辅助截图：" + filename);
+  }
+}
+
 async function prepareDictionaryFixture(page) {
   // 在隔离资料里启用真实词典，并收藏一个样例以验收双标签和筛选。
   await page.evaluate(async () => {
@@ -371,11 +396,7 @@ async function main() {
   try {
     if (desktopOnly) {
       desktop = await startDesktop(profile, root, focusMonitor);
-      await desktop.page.screenshot({
-        path: path.join(root, "before-desktop.png"),
-        animations: "disabled",
-        scale: "css",
-      });
+      await captureDesktop(desktop, root, "before-desktop.png");
       return;
     }
     idea = startIdea(root, profile);
@@ -405,11 +426,7 @@ async function main() {
     await active
       .getByText("连接成功", { exact: true })
       .waitFor({ timeout: 20000 });
-    await desktop.page.screenshot({
-      path: path.join(root, "after-desktop.png"),
-      animations: "disabled",
-      scale: "css",
-    });
+    await captureDesktop(desktop, root, "after-desktop.png");
     const browserWindow = await desktop.app.browserWindow(desktop.page);
     const desktopSize = await browserWindow.evaluate((window) =>
       window.getSize(),
@@ -419,11 +436,7 @@ async function main() {
     await active
       .getByRole("button", { name: "断开连接", exact: true })
       .waitFor();
-    await desktop.page.screenshot({
-      path: path.join(root, "after-desktop-compact.png"),
-      animations: "disabled",
-      scale: "css",
-    });
+    await captureDesktop(desktop, root, "after-desktop-compact.png");
     await browserWindow.evaluate(
       (window, size) => window.setSize(...size),
       desktopSize,

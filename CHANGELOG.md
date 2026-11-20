@@ -18,6 +18,7 @@
 - 提供浅色与深色 Marketplace 矢量标志；发布校验会拦截嵌入位图的图标。
 - CI 通过 Xvfb 运行 IDEA Community 的真实 Swing 界面及 Desktop/Core 联调，保留隔离日志和超时线程诊断。
 - CI 的新建测试资料使用 JetBrains 官方 UI 示例的协议测试配置，支持无人值守启动。
+- Linux 联调通过 Electron 捕获隐藏的桌面窗口，保留连接、窄窗、断线恢复和撤销授权的界面断言。
 
 ### 许可
 
