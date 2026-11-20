@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync, spawn } = require("node:child_process");
+const { execFileSync, spawn, spawnSync } = require("node:child_process");
 const { createRequire } = require("node:module");
 const { setTimeout: delay } = require("node:timers/promises");
 const { startFocusMonitor } = require("./fixtures/macos-focus-monitor.cjs");
@@ -317,6 +317,15 @@ async function waitFile(root, name, idea, seconds = 90) {
         `IDEA 提前退出（${idea.signalCode || idea.exitCode}），请查看进程日志。`,
       );
     await delay(180);
+  }
+  if (env.CI && idea.pid) {
+    // 保留隔离进程的线程状态，用于定位托管机器上的启动和模态窗口问题。
+    const jcmd = env.JAVA_HOME ? path.join(env.JAVA_HOME, "bin/jcmd") : "jcmd";
+    const result = spawnSync(jcmd, [String(idea.pid), "Thread.print", "-l"], {
+      encoding: "utf8",
+      timeout: 12000,
+    });
+    put(root, "idea-threads.txt", result.stdout || result.stderr || "");
   }
   throw new Error("等待 IDEA 验收阶段超时：" + name);
 }

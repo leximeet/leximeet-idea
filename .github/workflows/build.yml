@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    # 与 Desktop 自身的真实浏览器联调采用同一类有图形会话的 runner。
-    runs-on: macos-15
+    # Swing 和 Electron 共用独立的虚拟显示，无需系统前台会话。
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       LEXIMEET_DESKTOP_ROOT: ${{ github.workspace }}/.ci/desktop
@@ -31,33 +31,33 @@ jobs:
           node-version: '24.14.0'
       - name: 准备 IntelliJ IDEA Community 2025.2.6.4
         run: |
-          # 托管 runner 无 JetBrains 账号。使用官方 Community 发行版验证最低兼容分支。
-          for app in "/Applications/IntelliJ IDEA CE.app" "/Applications/IntelliJ IDEA Community Edition.app"; do
-            if [[ -x "$app/Contents/MacOS/idea" && -r "$app/Contents/Resources/product-info.json" ]] &&
-               python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["productCode"] == "IC"' \
-                 "$app/Contents/Resources/product-info.json"; then
-              echo "LEXIMEET_IDE_APP=$app" >> "$GITHUB_ENV"
-              exit 0
-            fi
-          done
-          test "$(uname -m)" = arm64
-          image="$RUNNER_TEMP/ideaIC-2025.2.6.4-aarch64.dmg"
-          mount="$RUNNER_TEMP/leximeet-idea-mount"
-          curl --fail --silent --show-error --location --proto '=https' \
-            --retry 3 --max-time 480 -o "$image" \
-            https://download.jetbrains.com/idea/ideaIC-2025.2.6.4-aarch64.dmg
-          printf '2c1810113f0fcfc1347ed93d22ae6666dc1c82ec16a94b987de8795f21e9659d  %s\n' "$image" | shasum -a 256 -c -
-          hdiutil attach "$image" -nobrowse -readonly -mountpoint "$mount"
-          echo "LEXIMEET_CI_IDEA_MOUNT=$mount" >> "$GITHUB_ENV"
-          for app in "$mount"/*.app; do
-            if [[ -x "$app/Contents/MacOS/idea" && -r "$app/Contents/Resources/product-info.json" ]]; then
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+          # 复用已安装的同一版本，确保构建和图形验收覆盖最低兼容分支。
+          check_idea() {
+            [[ -x "$1/bin/idea" && -x "$1/jbr/bin/java" && -r "$1/product-info.json" ]] &&
               python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["productCode"] == "IC" and p["version"] == "2025.2.6.4"' \
-                "$app/Contents/Resources/product-info.json"
-              echo "LEXIMEET_IDE_APP=$app" >> "$GITHUB_ENV"
+                "$1/product-info.json"
+          }
+          for home in /opt/idea /opt/intellij-idea /usr/local/idea /snap/intellij-idea-community/current; do
+            if check_idea "$home"; then
+              echo "LEXIMEET_IDE_APP=$home" >> "$GITHUB_ENV"
               exit 0
             fi
           done
-          exit 1
+          test "$(uname -m)" = x86_64
+          archive="$RUNNER_TEMP/ideaIC-2025.2.6.4.tar.gz"
+          home="$RUNNER_TEMP/idea-community"
+          curl --fail --silent --show-error --location --proto '=https' \
+            --retry 3 --max-time 480 -o "$archive" \
+            https://download.jetbrains.com/idea/ideaIC-2025.2.6.4.tar.gz
+          printf '3662d856e07436a51fd2b6c502d42e3a4b9379175f3e67e9d64920434baedc5d  %s\n' "$archive" | sha256sum --check
+          install -d "$home"
+          tar -xzf "$archive" --strip-components=1 -C "$home"
+          check_idea "$home"
+          echo "LEXIMEET_IDE_APP=$home" >> "$GITHUB_ENV"
       - name: 配置独立的 UI 验收输出
         run: echo "LEXIMEET_IDEA_TEST_OUTPUT=$RUNNER_TEMP/leximeet-idea-ui" >> "$GITHUB_ENV"
       - name: 格式、单元、Socket 集成测试与构建
@@ -70,12 +70,12 @@ jobs:
           version="$(python3 scripts/check-release-archive.py --version-only)"
           echo "archive=build/distributions/leximeet-idea-$version.zip" >> "$GITHUB_OUTPUT"
       - name: IntelliJ IDEA 原生 UI 自动化
-        run: node scripts/verify-connected.cjs --ui-only
+        run: xvfb-run -a -s '-screen 0 1600x1000x24' node scripts/verify-connected.cjs --ui-only
       - name: 获取与本插件匹配的 Desktop 和 Core
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: leximeet/leximeet-desktop
-          ref: 3d0b78304db28cb65d5c2030d4bccb4f88a8e5cf
+          ref: ce3b042ec7ccbed124cda53cb1addf7eef8ed342
           path: .ci/desktop
           submodules: recursive
           persist-credentials: false
@@ -90,10 +90,7 @@ jobs:
           npm run install:electron
           npm run build
       - name: IDEA 与 Desktop 端到端联调
-        run: node scripts/verify-connected.cjs --full-decompiler
-      - name: 释放本次 CI 挂载的 IDEA 镜像
-        if: always() && env.LEXIMEET_CI_IDEA_MOUNT != ''
-        run: hdiutil detach "$LEXIMEET_CI_IDEA_MOUNT"
+        run: xvfb-run -a -s '-screen 0 1600x1000x24' node scripts/verify-connected.cjs --full-decompiler
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
@@ -106,6 +103,7 @@ jobs:
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/failure.txt
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/*.png
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/idea-process.log
+            ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/idea-threads.txt
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/ide-log/idea.log
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/background-focus.json
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/desktop-background.jsonl

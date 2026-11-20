@@ -1,4 +1,5 @@
-修复：在 IDEA Community 的最低兼容分支执行图形验收
+修复：用独立虚拟显示运行 IDEA 云端联调
 
-- 云端为无账号的原生测试使用官方 Community 发行版。
-- 验证插件声明的 252 分支，保留 UI、JAR 反编译与真实 Desktop 联调。
+- 在 Ubuntu 的 Xvfb 中验证 IDEA Community 原生界面，复用安装或校验官方发行包。
+- 固定 Desktop 1.1.0 发行提交与 Core gitlink，保留真实反编译和连接用例。
+- 为隔离测试进程保留超时线程诊断，更新开发指南与变更记录。

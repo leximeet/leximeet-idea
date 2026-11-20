@@ -16,7 +16,7 @@
 - 增加 Spotless、Kotlin 单元测试、Socket 集成测试、原生 UI 自动化及真实桌面端联调。本地优先复用已安装的 IDEA。
 - 版本标签触发完整验收，验收通过后签名、验证 ZIP 内容并生成 GitHub Release 草稿；Marketplace 首发由维护者在网页提交。
 - 提供浅色与深色 Marketplace 矢量标志；发布校验会拦截嵌入位图的图标。
-- macOS CI 复用或挂载校验过的官方 IDEA Community 发行版，记录原生进程退出码和隔离日志。
+- CI 通过 Xvfb 运行 IDEA Community 的真实 Swing 界面及 Desktop/Core 联调，保留隔离日志和超时线程诊断。
 
 ### 许可
 
