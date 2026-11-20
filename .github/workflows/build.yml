@@ -29,6 +29,25 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24.14.0'
+      - name: 准备可启动的 IntelliJ IDEA 2026.1.5
+        run: |
+          # Gradle 提取的 2025.2 macOS 发行目录可编译却无法作为原生应用进程启动。
+          # 有本机安装即复用；无安装的 CI 才挂载校验后的官方 Apple Silicon 镜像。
+          if [[ -r '/Applications/IntelliJ IDEA.app/Contents/Resources/product-info.json' &&
+                -x '/Applications/IntelliJ IDEA.app/Contents/MacOS/idea' ]]; then
+            exit 0
+          fi
+          test "$(uname -m)" = arm64
+          image="$RUNNER_TEMP/idea-2026.1.5-aarch64.dmg"
+          mount="$RUNNER_TEMP/leximeet-idea-mount"
+          curl --fail --silent --show-error --location --proto '=https' \
+            --retry 3 --max-time 480 -o "$image" \
+            https://download.jetbrains.com/idea/idea-2026.1.5-aarch64.dmg
+          printf '8d9c3d9260cb1343549983e00b373d818821c343cbc23d1fb55b2152021fc48d  %s\n' "$image" | shasum -a 256 -c -
+          hdiutil attach "$image" -nobrowse -readonly -mountpoint "$mount"
+          test -x "$mount/IntelliJ IDEA.app/Contents/MacOS/idea"
+          echo "LEXIMEET_IDE_APP=$mount/IntelliJ IDEA.app" >> "$GITHUB_ENV"
+          echo "LEXIMEET_CI_IDEA_MOUNT=$mount" >> "$GITHUB_ENV"
       - name: 配置独立的 UI 验收输出
         run: echo "LEXIMEET_IDEA_TEST_OUTPUT=$RUNNER_TEMP/leximeet-idea-ui" >> "$GITHUB_ENV"
       - name: 格式、单元、Socket 集成测试与构建
@@ -46,7 +65,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: leximeet/leximeet-desktop
-          ref: f5dae2d4271730fe28ca2978919c9b38e335c7fa
+          ref: a9a963c51edbdebc4fcdb3cb9c91a810cc8adda2
           path: .ci/desktop
           submodules: recursive
           persist-credentials: false
@@ -62,6 +81,9 @@ jobs:
           npm run build
       - name: IDEA 与 Desktop 端到端联调
         run: node scripts/verify-connected.cjs --full-decompiler
+      - name: 释放本次 CI 挂载的 IDEA 镜像
+        if: always() && env.LEXIMEET_CI_IDEA_MOUNT != ''
+        run: hdiutil detach "$LEXIMEET_CI_IDEA_MOUNT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
@@ -74,6 +96,7 @@ jobs:
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/failure.txt
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/*.png
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/idea-process.log
+            ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/ide-log/idea.log
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/background-focus.json
             ${{ env.LEXIMEET_IDEA_TEST_OUTPUT }}/*/desktop-background.jsonl
           retention-days: 14

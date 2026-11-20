@@ -313,7 +313,9 @@ async function waitFile(root, name, idea, seconds = 90) {
       throw new Error(fs.readFileSync(path.join(root, "failure.txt"), "utf8"));
     if (fs.existsSync(path.join(root, name))) return;
     if (idea.exitCode !== null || idea.signalCode !== null)
-      throw new Error("IDEA 提前退出，请查看进程日志。");
+      throw new Error(
+        `IDEA 提前退出（${idea.signalCode || idea.exitCode}），请查看进程日志。`,
+      );
     await delay(180);
   }
   throw new Error("等待 IDEA 验收阶段超时：" + name);
