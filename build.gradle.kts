@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.intellij.platform")
-    id("com.diffplug.spotless") version "8.3.0"
+    id("com.diffplug.spotless") version "8.12.0"
 }
 
 kotlin {
